@@ -128,15 +128,11 @@ claude mcp add favorit-parts -- node /путь/к/favorit-parts-search/mcp/index
 «нужен аналог антифриза FEBI 01089, только в наличии» — агент сам ищет производителей, запрашивает
 аналоги и отвечает реальными ценами, остатками и датами отгрузки.
 
-```
-Чат n8n ─┐                                    ┌─ да ─→ Ответ в Telegram
-         ├─→ AI-агент ─→ Из Telegram? ────────┤
-Telegram ┘   │                                └─ нет → ответ в чат n8n
-             ├─ DeepSeek (модель)
-             ├─ Память диалога (10 сообщений, своя у каждого чата)
-             ├─ find_part_brands (JavaScript)
-             └─ get_part_offers (JavaScript)
-```
+![Сценарий в n8n: чат n8n и Telegram → AI-агент с DeepSeek, памятью и двумя инструментами → ответ в Telegram](docs/n8n-workflow.png)
+
+Сообщение приходит из встроенного чата n8n или из Telegram. AI-агент на DeepSeek помнит последние
+10 сообщений своего чата и вызывает инструменты `find_part_brands` и `get_part_offers`. Ответ на
+сообщение из Telegram уходит обратно в Telegram, в чат n8n — возвращается сам.
 
 **Запуск:**
 
