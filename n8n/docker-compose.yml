@@ -12,7 +12,9 @@ services:
       TZ: Europe/Moscow
       # Telegram присылает сообщения только на публичный HTTPS-адрес.
       # Укажите его здесь, когда n8n будет доступен из интернета (сервер или туннель).
-      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      # Запросы приходят через туннель или прокси — n8n должен доверять X-Forwarded-For.
+      N8N_PROXY_HOPS: 1
     volumes:
       - n8n_data:/home/node/.n8n
 
