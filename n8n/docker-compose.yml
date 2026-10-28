@@ -1,0 +1,22 @@
+# n8n для сценария «Подбор автозапчастей»: docker compose -f n8n/docker-compose.yml up -d
+# Интерфейс — http://localhost:5678. Порт открыт только на этом компьютере.
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.45.5
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:5678:5678
+    environment:
+      GENERIC_TIMEZONE: Europe/Moscow
+      TZ: Europe/Moscow
+      # Telegram присылает сообщения только на публичный HTTPS-адрес.
+      # Укажите его здесь, когда n8n будет доступен из интернета (сервер или туннель).
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
+    # Тот же том, что у контейнера, запущенного через docker run.
+    name: n8n_data
