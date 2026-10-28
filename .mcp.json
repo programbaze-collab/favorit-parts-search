@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "favorit-parts": {
+      "command": "node",
+      "args": ["mcp/index.js"]
+    }
+  }
+}
