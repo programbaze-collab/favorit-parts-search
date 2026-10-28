@@ -5,7 +5,7 @@
 
 **Демо:** https://programbaze-collab.github.io/favorit-parts-search/
 
-**Стек:** React 19, Redux Toolkit (RTK Query), Bootstrap 5, Vite. Тесты: Vitest + Testing Library.
+**Стек:** React 19, Redux Toolkit (RTK Query), Bootstrap 5, Vite. Тесты: Vitest + Testing Library, E2E — Playwright.
 
 ## Запуск
 
@@ -13,6 +13,7 @@
 npm install
 npm run dev      # http://localhost:5173
 npm test         # тесты
+npm run test:e2e # E2E в браузере (первый раз: npx playwright install chromium)
 npm run build    # сборка в dist/
 ```
 
@@ -54,6 +55,11 @@ npm run build    # сборка в dist/
   не-JSON, экранирование `#` и `&` в параметрах.
 - `App.test.jsx` — сценарии пользователя через интерфейс с подменённым `fetch`: полный путь
   артикул → производитель → таблица, «ничего не найдено», сбой сети и повтор.
+- `e2e/search.spec.js` — Playwright: те же сценарии в настоящем браузере на production-сборке,
+  на десктопе и на телефоне (Pixel 7). API Favorit подменяется через `page.route`, поэтому тесты
+  не зависят от чужого сервера. Плюс то, что не проверить в jsdom: раскрытие складов, фильтр
+  «Только в наличии», возврат к производителям без повторного запроса, ответ 500 с HTML,
+  отсутствие горизонтальной прокрутки на телефоне. В CI деплой не запускается, если E2E упали.
 
 ## Что сделал бы в продакшене
 
