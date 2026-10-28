@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "mcp": "node mcp/index.js",
-    "n8n:build": "node n8n/build.mjs"
+    "n8n:build": "node n8n/build.mjs",
+    "evals": "node --env-file-if-exists=.env evals/run.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

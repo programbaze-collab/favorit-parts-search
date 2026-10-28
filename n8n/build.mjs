@@ -10,7 +10,10 @@ export function toolCode(name) {
   return `${read('./tools/favorit.js')}\n${read(`./tools/${name}.js`)}`
 }
 
-const SYSTEM_MESSAGE = `Ты — помощник по подбору автозапчастей в магазине Favorit. Отвечаешь по-русски, коротко и по делу.
+// Настройки агента, промпт и описания инструментов общие для сценария n8n и evals (evals/run.mjs).
+export const AGENT = { model: 'deepseek-chat', temperature: 0.2, maxIterations: 6, memoryWindow: 10 }
+
+export const SYSTEM_MESSAGE = `Ты — помощник по подбору автозапчастей в магазине Favorit. Отвечаешь по-русски, коротко и по делу.
 
 Как искать:
 1. Артикул из сообщения передай в find_part_brands. Если производителей несколько и пользователь не назвал нужного, перечисли их с ценой и остатком и спроси, какой нужен.
@@ -18,13 +21,44 @@ const SYSTEM_MESSAGE = `Ты — помощник по подбору автоз
 3. Если просят «в наличии» или «что можно купить сейчас», передай inStockOnly: true.
 
 Правила:
-- Цены, остатки и сроки бери только из ответов инструментов. Ничего не придумывай и не округляй цены.
+- Цены, остатки и сроки бери только из ответов инструментов. Ничего не придумывай.
+- Цену копируй из поля minPriceText как есть, символ в символ: «213,71 ₽». Не округляй и не переписывай число из minPrice, даже в кратком списке.
+- Остаток пиши общий, из поля stock: «в наличии 846 шт.». Код склада (МСК РС, ДМД) не пиши: покупателю он ничего не говорит, а рядом с общим остатком путает.
 - Если инструмент вернул ошибку, перескажи её пользователю своими словами.
 - Если в сообщении нет артикула, попроси его прислать.
-- Пиши простым текстом без таблиц и Markdown: ответ уходит в Telegram. Цену пиши как «1 082 ₽», дату отгрузки — как «30.10».
+- Пиши простым текстом без таблиц и Markdown: ответ уходит в Telegram. Дату отгрузки пиши как «30.10».
 - Аналогов показывай не больше пяти, самые дешёвые из тех, что в наличии.`
 
-function codeTool(id, name, description, inputSchema, position) {
+export const TOOLS = [
+  {
+    name: 'find_part_brands',
+    description:
+      'Ищет автозапчасть по артикулу в API Favorit. Возвращает JSON: производители, которые выпускают деталь с таким номером, с минимальной ценой, остатком и лучшим складом. Первый шаг поиска.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        number: { type: 'string', description: 'Артикул, например 01089. Пробелы и дефисы допустимы' },
+      },
+      required: ['number'],
+    },
+  },
+  {
+    name: 'get_part_offers',
+    description:
+      'Возвращает JSON: искомую деталь конкретного производителя и до 10 аналогов с ценой, остатком и лучшим складом. analoguesTotal — сколько аналогов найдено всего. brand и number бери из ответа find_part_brands.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        brand: { type: 'string', description: 'Производитель, например FEBI' },
+        number: { type: 'string', description: 'Номер детали у этого производителя' },
+        inStockOnly: { type: 'boolean', description: 'Только позиции с остатком' },
+      },
+      required: ['brand', 'number'],
+    },
+  },
+]
+
+function codeTool(id, { name, description, inputSchema }, position) {
   return {
     id,
     name,
@@ -70,7 +104,7 @@ export function buildWorkflow() {
         promptType: 'define',
         // Сообщение приходит либо из чата n8n, либо из Telegram.
         text: '={{ $json.chatInput ?? $json.message?.text }}',
-        options: { systemMessage: SYSTEM_MESSAGE, maxIterations: 6, enableStreaming: false },
+        options: { systemMessage: SYSTEM_MESSAGE, maxIterations: AGENT.maxIterations, enableStreaming: false },
       },
     },
     {
@@ -79,7 +113,7 @@ export function buildWorkflow() {
       type: '@n8n/n8n-nodes-langchain.lmChatDeepSeek',
       typeVersion: 1,
       position: [160, 360],
-      parameters: { model: 'deepseek-chat', options: { temperature: 0.2 } },
+      parameters: { model: AGENT.model, options: { temperature: AGENT.temperature } },
     },
     {
       id: 'memory',
@@ -91,37 +125,11 @@ export function buildWorkflow() {
         sessionIdType: 'customKey',
         // Своя история у каждого чата: sessionId в чате n8n, id чата в Telegram.
         sessionKey: '={{ $json.sessionId ?? String($json.message?.chat?.id) }}',
-        contextWindowLength: 10,
+        contextWindowLength: AGENT.memoryWindow,
       },
     },
-    codeTool(
-      'tool-brands',
-      'find_part_brands',
-      'Ищет автозапчасть по артикулу в API Favorit. Возвращает JSON: производители, которые выпускают деталь с таким номером, с минимальной ценой, остатком и лучшим складом. Первый шаг поиска.',
-      {
-        type: 'object',
-        properties: {
-          number: { type: 'string', description: 'Артикул, например 01089. Пробелы и дефисы допустимы' },
-        },
-        required: ['number'],
-      },
-      [480, 360],
-    ),
-    codeTool(
-      'tool-offers',
-      'get_part_offers',
-      'Возвращает JSON: искомую деталь конкретного производителя и до 10 аналогов с ценой, остатком и лучшим складом. analoguesTotal — сколько аналогов найдено всего. brand и number бери из ответа find_part_brands.',
-      {
-        type: 'object',
-        properties: {
-          brand: { type: 'string', description: 'Производитель, например FEBI' },
-          number: { type: 'string', description: 'Номер детали у этого производителя' },
-          inStockOnly: { type: 'boolean', description: 'Только позиции с остатком' },
-        },
-        required: ['brand', 'number'],
-      },
-      [640, 360],
-    ),
+    codeTool('tool-brands', TOOLS[0], [480, 360]),
+    codeTool('tool-offers', TOOLS[1], [640, 360]),
     {
       id: 'from-telegram',
       name: 'Из Telegram?',

@@ -57,6 +57,10 @@ function isRealItem(item) {
   return Boolean(item && item.goodsID && item.goodsID !== EMPTY_GOODS_ID && item.brand)
 }
 
+// Готовая строка с ценой: модель копирует её как есть, а не переписывает число —
+// при переписывании модели округляют и путают цифры (это нашли evals).
+const rub = new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 2 })
+
 // Корневое поле price устарело — цену берём со складов с остатком.
 function toOffer(item) {
   const [best] = (item.warehouses ?? [])
@@ -69,6 +73,7 @@ function toOffer(item) {
     name: item.name,
     stock: item.count ?? 0,
     minPrice: best ? best.price : null,
+    minPriceText: best ? rub.format(best.price) : null,
     bestWarehouse: best
       ? { code: best.code, price: best.price, stock: best.stock, shipmentDate: best.shipmentDate ?? null }
       : null,

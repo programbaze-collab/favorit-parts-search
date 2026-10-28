@@ -51,9 +51,18 @@ describe('find_part_brands', () => {
           name: 'Деталь FEBI',
           stock: 123,
           minPrice: 1082,
+          minPriceText: '1 082,00 ₽',
           bestWarehouse: { code: 'МСК', price: 1082, stock: 120, shipmentDate: '2026-10-29T12:20:00+03:00' },
         },
-        { brand: 'AP', number: '01089', name: 'Деталь AP', stock: 0, minPrice: null, bestWarehouse: null },
+        {
+          brand: 'AP',
+          number: '01089',
+          name: 'Деталь AP',
+          stock: 0,
+          minPrice: null,
+          minPriceText: null,
+          bestWarehouse: null,
+        },
       ],
     })
     expect(httpRequest.mock.lastCall[0].qs).toMatchObject({ number: '01089' })
